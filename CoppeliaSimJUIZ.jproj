@@ -1,0 +1,143 @@
+logger:
+  logLevel: TRACE
+load_paths:
+  - ./
+  - /opt/juiz/share/juiz
+  - /opt/juiz/share/juiz/components
+shelves:
+  - path: CoppeliaSimJUIZ.jshelf
+  - path: brokers.jshelf
+  - path: ecs.jshelf
+  - path: RoboticsUtil/RoboticsUtil.jshelf
+operations:
+  precreate: 
+    - typeName: valueSelector
+      fullName: rightWheelSelector.ope
+      defaultArg:
+        key: "rightWheelVelocity"
+        value:
+          rightWheelVelocity: 0.0
+    - typeName: valueSelector
+      fullName: leftWheelSelector.ope
+      defaultArg:
+        key: "leftWheelVelocity"
+        value: 
+          leftWheelVelocity: 0.0
+    - typeName: floatsToLaser
+anchors: []
+#  - fullName: origin
+#    typeName: DynamicPeriodicAnchor
+#    rate: 10
+#    autoStart: true
+containers:
+  precreate: 
+    - typeName: MobileRobotKinematics
+      fullName: MobileRobotKinematics0.ctn
+      operations:
+        - typeName: updatePose
+          instanceName: updatePose0.ope
+        - typeName: getPose
+          instanceName: getPose0.ope
+        - typeName: setTargetVelocity
+          instanceName: setTargetVelocity0.ope
+    - typeName: CoppeliaSim
+      fullName: CoppeliaSim0.ctn
+      operations:
+        - typeName: start
+          instanceName: start0.ope
+        - typeName: startSimulation
+          instanceName: startSimulation0.ope
+        - typeName: finish
+          instanceName: finish0.ope
+        - typeName: stopSimulation
+          instanceName: stopSimulation0.ope
+        - typeName: getObjectPosition
+          instanceName: getObjectPosition0.ope
+        - typeName: setJointTargetVelocity
+          instanceName: right_wheel.ope
+          defaultArg:
+            objectPath: "/PioneerP3DX/rightMotor"
+        - typeName: setJointTargetVelocity
+          instanceName: left_wheel.ope
+          defaultArg:
+            objectPath: "/PioneerP3DX/leftMotor"
+        - typeName: getJointPosition
+          instanceName: right_wheel_pos.ope
+          defaultArg:
+            objectPath: "/PioneerP3DX/rightMotor"
+            operationMode: simx_opmode_oneshot
+        - typeName: getJointPosition
+          instanceName: left_wheel_pos.ope
+          defaultArg:
+            objectPath: "/PioneerP3DX/leftMotor"
+            operationMode: simx_opmode_oneshot
+        - typeName: getStringSignal
+          instanceName: get_laser.ope
+          defaultArg: 
+            operationMode: simx_opmode_oneshot
+  transformations: []
+connections:
+  - name: conRightWheelJoint
+    type: pull
+    outlet: CoppeliaSim0.ctn:right_wheel_pos.ope
+    inlet: MobileRobotKinematics0.ctn:updatePose0.ope:rightMotorAngle
+  - name: conLeftWheelJoint
+    type: pull
+    outlet: CoppeliaSim0.ctn:left_wheel_pos.ope
+    inlet: MobileRobotKinematics0.ctn:updatePose0.ope:leftMotorAngle
+  - name: conSelectRightWheel
+    type: event
+    outlet: MobileRobotKinematics0.ctn:setTargetVelocity0.ope
+    inlet: rightWheelSelector.ope:value
+  - name: conSelectLeftWheel
+    type: event
+    outlet: MobileRobotKinematics0.ctn:setTargetVelocity0.ope
+    inlet: leftWheelSelector.ope:value
+  - name: conRightWheel
+    type: event
+    outlet: rightWheelSelector.ope
+    inlet: CoppeliaSim0.ctn:right_wheel.ope:targetVelocity
+  - name: conLeftWheel
+    type: event
+    outlet: leftWheelSelector.ope
+    inlet: CoppeliaSim0.ctn:left_wheel.ope:targetVelocity
+  - name: conLaser
+    type: pull
+    outlet: CoppeliaSim0.ctn:get_laser.ope
+    inlet: floatsToLaser0.ope:ranges
+brokers:
+  precreate: 
+    - typeName: HTTPBroker
+      fullName: HTTPBroker0.brk
+      host: "0.0.0.0"
+      port: 8080
+#      baseDir: "."
+#      route: {}
+ecs:
+  precreate:
+    - typeName: TimerEC
+      fullName: TimerEC0.ec
+      rate: 1.0
+      bind: 
+        - MobileRobotKinematics0.ctn:updatePose0.ope
+fsms:
+  precreate:
+    - typeName: GenericFSM
+      defaultState: stopped
+      states:
+        - name: stopped
+          transit: [ready]
+          bind: 
+            - CoppeliaSim0.ctn:finish0.ope
+        - name: ready
+          transit: [stopped, running]
+          bind:
+            - CoppeliaSim0.ctn:start0.ope
+            - CoppeliaSim0.ctn:stopSimulation0.ope
+            - TimerEC0.ec:stopped
+        - name: running
+          transit: [ready]
+          bind:
+            - CoppeliaSim0.ctn:startSimulation0.ope
+            - TimerEC0.ec:started
+        

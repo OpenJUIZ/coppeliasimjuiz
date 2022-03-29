@@ -1,0 +1,34 @@
+
+containers:   
+  load_paths: 
+    - "${ShelfDirectory}"
+    - "build/lib"
+    - "../build/lib/Debug"
+    - "../build/lib/Release"
+
+  preload:     
+    CoppeliaSim:       
+      mesh:         
+        include: "CoppeliaSimJUIZ.model.yaml"
+      operations: 
+        - "start"
+        - "finish"
+        - "startSimulation"
+        - "stopSimulation"
+        - "getObjectPosition"
+        - "getObjectOrientation"
+        - "getObjectQuaternion"
+        - "setJointTargetVelocity"
+        - "getJointPosition"
+        - "getStringSignal"
+
+load_paths: 
+  - "./"
+
+operations:   
+  load_paths: 
+    - "${ShelfDirectory}"
+    - "../build/lib/Debug"
+    - "../build/lib/Release"
+
+  preload: []
